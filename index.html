@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Caja Sorpresa Chipax</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #00BA8F; --green2: #00d4a3;
+    --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e; --surface3: #282828;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f0; --text-muted: #666; --text-sub: #999;
+    --radius: 20px; --radius-sm: 12px;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+  }
+
+  /* subtle grid bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,186,143,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,186,143,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #wrap {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 860px;
+    display: flex; flex-direction: column;
+    gap: 24px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 0 0 8px;
+  }
+  header h1 {
+    font-size: 2.4rem; font-weight: 900;
+    background: linear-gradient(135deg, var(--green), var(--green2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+  }
+  header p { font-size: 0.95rem; color: var(--text-muted); margin-top: 8px; }
+
+  /* SORT BUTTON */
+  #open-btn {
+    width: 100%; padding: 18px;
+    background: linear-gradient(135deg, var(--green), var(--green2));
+    color: white; border: none; border-radius: var(--radius);
+    font-size: 1.05rem; font-weight: 700; cursor: pointer;
+    letter-spacing: 0.3px;
+    box-shadow: 0 0 40px rgba(0,186,143,0.2);
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+  #open-btn:hover:not(:disabled) {
+    opacity: 0.92; transform: translateY(-2px);
+    box-shadow: 0 0 60px rgba(0,186,143,0.35);
+  }
+  #open-btn:active:not(:disabled) { transform: translateY(0); }
+  #open-btn:disabled {
+    background: var(--surface2); color: var(--text-muted);
+    cursor: default; box-shadow: none; transform: none;
+  }
+
+  /* SLOT */
+  #slot-area {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 2rem;
+    text-align: center;
+  }
+  #slot-area.show { display: block; }
+  #slot-label {
+    font-size: 0.7rem; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 14px;
+  }
+  #slot-window {
+    overflow: hidden; height: 64px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    max-width: 360px; margin: 0 auto;
+  }
+  #slot-reel { display: flex; flex-direction: column; align-items: center; }
+  .slot-item {
+    height: 64px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; font-weight: 700; color: var(--text); min-width: 260px;
+  }
+  #slot-winner {
+    display: none;
+    font-size: 2.8rem; font-weight: 900;
+    background: linear-gradient(135deg, var(--green), var(--green2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    padding: 4px 0;
+    line-height: 1.1;
+  }
+  #slot-winner.show { display: block; }
+  #slot-sub { display: none; font-size: 0.9rem; color: var(--text-sub); margin-top: 8px; }
+  #slot-sub.show { display: block; }
+
+  /* BOXES */
+  #boxes-area {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+  }
+  .box-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    cursor: pointer; padding: 16px 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .box-wrap:not(.opened):not(.disabled):hover {
+    border-color: var(--border2);
+    background: var(--surface2);
+  }
+  .box-wrap.disabled { cursor: default; pointer-events: none; }
+  .box-wrap:not(.opened):not(.disabled) .box-3d { animation: float 2.4s ease-in-out infinite; }
+  .box-wrap:nth-child(2):not(.opened):not(.disabled) .box-3d { animation-delay: 0.3s; }
+  .box-wrap:nth-child(3):not(.opened):not(.disabled) .box-3d { animation-delay: 0.6s; }
+  .box-wrap:nth-child(4):not(.opened):not(.disabled) .box-3d { animation-delay: 0.9s; }
+  .box-wrap:nth-child(5):not(.opened):not(.disabled) .box-3d { animation-delay: 1.2s; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .box-wrap:not(.opened):not(.disabled):hover .box-3d {
+    animation: none; transform: translateY(-6px) scale(1.06);
+    transition: transform 0.15s; filter: brightness(1.2);
+  }
+  .box-3d { width: 100px; height: 108px; transition: opacity 0.3s, filter 0.2s; }
+  .box-wrap.opened .box-3d { opacity: 0.25; }
+  .box-wrap.disabled:not(.opened) .box-3d { opacity: 0.12; }
+  .box-wrap.pop .box-3d { animation: pop 0.5s ease !important; }
+  @keyframes pop { 0%{transform:scale(1) rotate(0)} 25%{transform:scale(1.3) rotate(-8deg)} 50%{transform:scale(0.9) rotate(5deg)} 75%{transform:scale(1.1) rotate(-3deg)} 100%{transform:scale(1) rotate(0)} }
+  .box-num {
+    font-size: 11px; color: var(--text-muted);
+    margin-top: 10px; font-weight: 500; letter-spacing: 0.04em;
+  }
+  .box-wrap.opened .box-num { color: var(--green); }
+
+  /* REVEAL */
+  #reveal-area {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    animation: fadeUp 0.35s ease;
+  }
+  #reveal-area.show { display: block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  #reveal-text {
+    font-size: 1.4rem; font-weight: 700;
+    color: var(--text); line-height: 1.5;
+    max-width: 500px; margin: 0 auto;
+  }
+  #reveal-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: center; }
+  #reveal-actions button {
+    padding: 11px 28px; border-radius: var(--radius-sm);
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  #reveal-actions button:hover { opacity: 0.85; transform: translateY(-1px); }
+  #btn-done {
+    background: linear-gradient(135deg, var(--green), var(--green2));
+    color: white; border: none;
+    box-shadow: 0 0 24px rgba(0,186,143,0.25);
+  }
+  #btn-close {
+    background: var(--surface2); color: var(--text-sub);
+    border: 1px solid var(--border2);
+  }
+
+  /* NEXT */
+  #next-btn {
+    display: none; width: 100%; padding: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-size: 1rem; color: var(--text); cursor: pointer; font-weight: 600;
+    transition: background 0.15s, transform 0.1s;
+  }
+  #next-btn:hover { background: var(--surface3); transform: translateY(-1px); }
+  #next-btn.show { display: block; }
+
+  #empty-msg {
+    text-align: center; font-size: 0.95rem;
+    color: var(--text-muted); padding: 2rem 0; display: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>Caja Sorpresa Chipax ✦</h1>
+    <p>Sortea un chipaxiano, elige una caja y descubre el tópico.</p>
+  </header>
+
+  <button id="open-btn" onclick="startSpin()">¡Sortear chipaxiano! 🎲</button>
+
+  <div id="slot-area">
+    <div id="slot-label">Le toca a...</div>
+    <div id="slot-window"><div id="slot-reel"></div></div>
+    <div id="slot-winner"></div>
+    <div id="slot-sub">Elige una caja 👇</div>
+  </div>
+
+  <div id="boxes-area"></div>
+  <div id="empty-msg">¡Todas las cajas abiertas! Renovando... 🎉</div>
+
+  <div id="reveal-area">
+    <div id="reveal-text"></div>
+    <div id="reveal-actions">
+      <button id="btn-done" onclick="markDone()">Listo ✓</button>
+      <button id="btn-close" onclick="closeReveal()">Cerrar</button>
+    </div>
+  </div>
+
+  <button id="next-btn" onclick="nextRound()">Siguiente sorteo →</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+const CHIPAXIANOS = ["Ado","Alexis","Barbi","Carla","Claudio","Dal","Dani","Dibu","Eric","Francois","Frano","Graci","Gracia","Jake","Javi","Javi G","JC","Jesu","Jhoa","Juan Cruz","Maripi","Maripa","Mirwing","Nico","Nicole","Pablo","PabloT","Panchi","Pipe","Romi","Sofi","Tito","Toni","Turbo","Yordana"];
+const TOPICS = [
+  "Cuéntanos de tus horas de surf 🏄",
+  "¿Qué estás aprendiendo ahora? 🧠",
+  "Comparte pantalla y con fotos cuéntanos algo de ti 🔑",
+  "Comparte pantalla y abre tu Notion equipo 👀",
+  "Dato random que nadie imagine",
+  "Tienes un minuto para contar una historia tuya divertida",
+  "Comparte una foto de tu comida favorita y convéncenos de que es la mejor",
+  "¿Cómo celebraste tu último cumple?",
+  "Expectativa vs Realidad: un proyecto o viaje",
+  "¿Qué lugar del mundo quieres conocer?"
+];
+const BOX_COLORS = [
+  { front:'#6B1A1A', top:'#9B2A2A', right:'#4A1010', border:'#F5A623', qmark:'#F5C842' },
+  { front:'#1A1A6B', top:'#2A2A9B', right:'#10104A', border:'#A78BFA', qmark:'#C4B5FD' },
+  { front:'#1A5C1A', top:'#2A8C2A', right:'#103A10', border:'#4ADE80', qmark:'#86EFAC' },
+  { front:'#6B4A1A', top:'#9B6A2A', right:'#4A3010', border:'#FDE68A', qmark:'#FCD34D' },
+  { front:'#4A1A5C', top:'#6A2A8C', right:'#30103A', border:'#F9A8D4', qmark:'#FBCFE8' },
+];
+
+function makeCubeSVG(c, opened) {
+  if (opened) {
+    return `<svg viewBox="0 0 100 108" width="100" height="108" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="10,52 90,52 90,97 10,97" fill="${c.front}" stroke="${c.border}" stroke-width="2"/>
+      <polygon points="90,52 100,42 100,87 90,97" fill="${c.right}" stroke="${c.border}" stroke-width="2"/>
+      <line x1="10" y1="60" x2="90" y2="60" stroke="${c.border}" stroke-width="1.5" opacity="0.4"/>
+      <line x1="10" y1="89" x2="90" y2="89" stroke="${c.border}" stroke-width="1.5" opacity="0.4"/>
+      <line x1="30" y1="52" x2="30" y2="97" stroke="${c.border}" stroke-width="1.5" opacity="0.4"/>
+      <line x1="70" y1="52" x2="70" y2="97" stroke="${c.border}" stroke-width="1.5" opacity="0.4"/>
+      <g transform="translate(50,14) rotate(-18) translate(-44,-10)">
+        <polygon points="0,0 80,0 90,10 10,10" fill="${c.top}" stroke="${c.border}" stroke-width="2"/>
+        <polygon points="0,0 10,10 10,28 0,18" fill="${c.right}" stroke="${c.border}" stroke-width="2"/>
+        <polygon points="0,0 80,0 80,18 0,18" fill="${c.front}" stroke="${c.border}" stroke-width="2"/>
+      </g>
+      <text x="22" y="44" font-size="13" fill="${c.qmark}" opacity="0.9">✦</text>
+      <text x="58" y="34" font-size="11" fill="${c.qmark}" opacity="0.7">✦</text>
+      <text x="76" y="46" font-size="9" fill="${c.qmark}" opacity="0.6">✦</text>
+    </svg>`;
+  }
+  return `<svg viewBox="0 0 100 108" width="100" height="108" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="10,27 50,10 90,27 50,44" fill="${c.top}" stroke="${c.border}" stroke-width="2"/>
+    <line x1="10" y1="27" x2="90" y2="27" stroke="${c.border}" stroke-width="1" opacity="0.35"/>
+    <line x1="30" y1="19" x2="70" y2="34" stroke="${c.border}" stroke-width="1" opacity="0.2"/>
+    <line x1="30" y1="34" x2="70" y2="19" stroke="${c.border}" stroke-width="1" opacity="0.2"/>
+    <polygon points="10,27 10,90 50,100 50,44" fill="${c.front}" stroke="${c.border}" stroke-width="2"/>
+    <line x1="10" y1="44" x2="50" y2="54" stroke="${c.border}" stroke-width="1.2" opacity="0.25"/>
+    <line x1="10" y1="65" x2="50" y2="75" stroke="${c.border}" stroke-width="1.2" opacity="0.25"/>
+    <line x1="10" y1="82" x2="50" y2="92" stroke="${c.border}" stroke-width="1.2" opacity="0.25"/>
+    <line x1="22" y1="30" x2="22" y2="92" stroke="${c.border}" stroke-width="1.2" opacity="0.18"/>
+    <line x1="36" y1="33" x2="36" y2="96" stroke="${c.border}" stroke-width="1.2" opacity="0.18"/>
+    <polygon points="50,44 90,27 90,90 50,100" fill="${c.right}" stroke="${c.border}" stroke-width="2"/>
+    <line x1="50" y1="54" x2="90" y2="44" stroke="${c.border}" stroke-width="1.2" opacity="0.25"/>
+    <line x1="50" y1="72" x2="90" y2="62" stroke="${c.border}" stroke-width="1.2" opacity="0.25"/>
+    <line x1="50" y1="88" x2="90" y2="80" stroke="${c.border}" stroke-width="1.2" opacity="0.25"/>
+    <line x1="63" y1="40" x2="63" y2="96" stroke="${c.border}" stroke-width="1.2" opacity="0.18"/>
+    <line x1="77" y1="33" x2="77" y2="92" stroke="${c.border}" stroke-width="1.2" opacity="0.18"/>
+    <text x="28" y="76" font-family="Arial Black,sans-serif" font-weight="900" font-size="28"
+      fill="${c.qmark}" text-anchor="middle" dominant-baseline="middle"
+      stroke="${c.border}" stroke-width="1" paint-order="stroke">?</text>
+    <text x="71" y="66" font-family="Arial Black,sans-serif" font-weight="900" font-size="22"
+      fill="${c.qmark}" text-anchor="middle" dominant-baseline="middle"
+      stroke="${c.border}" stroke-width="1" paint-order="stroke" opacity="0.85">?</text>
+    <polygon points="20,23 34,17 42,20 28,26" fill="white" opacity="0.15"/>
+  </svg>`;
+}
+
+let boxes=[], usedTopics=[], openedBox=null, currentWinner=null, roundDone=false, spinning=false;
+
+function buildBoxes() {
+  boxes = BOX_COLORS.map((c,i) => ({id:i,c,opened:false}));
+  renderBoxes();
+}
+
+function renderBoxes() {
+  const area = document.getElementById('boxes-area');
+  const emptyMsg = document.getElementById('empty-msg');
+  if (boxes.every(b => b.opened)) {
+    emptyMsg.style.display='block'; area.innerHTML='';
+    setTimeout(() => { emptyMsg.style.display='none'; buildBoxes(); }, 2200);
+    return;
+  }
+  emptyMsg.style.display='none'; area.innerHTML='';
+  const locked = openedBox!==null || !currentWinner || spinning;
+  boxes.forEach(b => {
+    const wrap = document.createElement('div');
+    wrap.className = 'box-wrap'+(b.opened?' opened disabled':(locked?' disabled':''));
+    wrap.id = `bw-${b.id}`;
+    const inner = document.createElement('div');
+    inner.className = 'box-3d';
+    inner.innerHTML = makeCubeSVG(b.c, b.opened);
+    wrap.appendChild(inner);
+    const lbl = document.createElement('div');
+    lbl.className = 'box-num';
+    lbl.textContent = b.opened ? '✓' : 'Caja '+(b.id+1);
+    wrap.appendChild(lbl);
+    if (!b.opened && !locked) wrap.onclick = () => openBox(b.id);
+    area.appendChild(wrap);
+  });
+}
+
+function startSpin() {
+  if (spinning) return;
+  spinning=true; currentWinner=null; openedBox=null; roundDone=false;
+  document.getElementById('reveal-area').classList.remove('show');
+  document.getElementById('next-btn').classList.remove('show');
+  document.getElementById('open-btn').disabled=true;
+  const slotWindow = document.getElementById('slot-window');
+  const slotWinner = document.getElementById('slot-winner');
+  const slotSub = document.getElementById('slot-sub');
+  const lbl = document.getElementById('slot-label');
+  slotWindow.style.display='flex';
+  slotWinner.className=''; slotSub.className='';
+  lbl.textContent='Le toca a...';
+  const target = CHIPAXIANOS[Math.floor(Math.random()*CHIPAXIANOS.length)];
+  const reel = document.getElementById('slot-reel');
+  document.getElementById('slot-area').classList.add('show');
+  const items=[];
+  for (let i=0;i<28;i++) items.push(CHIPAXIANOS[Math.floor(Math.random()*CHIPAXIANOS.length)]);
+  items.push(target);
+  reel.innerHTML=items.map(n=>`<div class="slot-item">${n}</div>`).join('');
+  reel.style.transition='none'; reel.style.transform='translateY(0)';
+  let idx=0; const itemH=64; const total=items.length;
+  function step() {
+    if (idx>=total-1) {
+      reel.style.transition='transform 0.4s cubic-bezier(0.15,0,0.3,1)';
+      reel.style.transform=`translateY(-${(total-1)*itemH}px)`;
+      setTimeout(() => {
+        spinning=false; currentWinner=target;
+        slotWindow.style.display='none';
+        lbl.textContent='¡Le toca a...';
+        slotWinner.textContent=target;
+        slotWinner.className='show';
+        slotSub.className='show';
+        renderBoxes();
+        if (typeof confetti!=='undefined') confetti({particleCount:100,spread:65,origin:{y:0.4},colors:['#00BA8F','#FDE68A','#B59DFB']});
+      }, 420);
+      return;
+    }
+    const progress=idx/(total-2);
+    const delay=38+progress*progress*160;
+    reel.style.transition=`transform ${delay}ms linear`;
+    reel.style.transform=`translateY(-${idx*itemH}px)`;
+    idx++;
+    setTimeout(step, delay+10);
+  }
+  setTimeout(step, 80);
+}
+
+function openBox(id) {
+  if (openedBox!==null||!currentWinner||spinning) return;
+  openedBox=id; boxes[id].opened=true;
+  const avail=TOPICS.map((_,i)=>i).filter(i=>!usedTopics.includes(i));
+  if (!avail.length) usedTopics=[];
+  const pool=TOPICS.map((_,i)=>i).filter(i=>!usedTopics.includes(i));
+  const qi=pool[Math.floor(Math.random()*pool.length)];
+  usedTopics.push(qi);
+  renderBoxes();
+  const wrap=document.getElementById(`bw-${id}`);
+  if (wrap){ const b3=wrap.querySelector('.box-3d'); if(b3){b3.classList.add('pop');setTimeout(()=>b3.classList.remove('pop'),500);} }
+  document.getElementById('reveal-text').textContent=TOPICS[qi];
+  document.getElementById('reveal-area').classList.add('show');
+  roundDone=false; document.getElementById('next-btn').classList.remove('show');
+  if (typeof confetti!=='undefined') confetti({particleCount:150,spread:80,origin:{y:0.6},colors:['#00BA8F','#FDE68A','#B59DFB','#BAE6FD']});
+}
+
+function markDone() { roundDone=true; closeReveal(); document.getElementById('next-btn').classList.add('show'); }
+function closeReveal() { document.getElementById('reveal-area').classList.remove('show'); if(roundDone) document.getElementById('next-btn').classList.add('show'); }
+function nextRound() {
+  openedBox=null; currentWinner=null; roundDone=false; spinning=false;
+  document.getElementById('next-btn').classList.remove('show');
+  document.getElementById('reveal-area').classList.remove('show');
+  document.getElementById('slot-area').classList.remove('show');
+  document.getElementById('slot-winner').className='';
+  document.getElementById('slot-sub').className='';
+  document.getElementById('slot-window').style.display='flex';
+  document.getElementById('open-btn').disabled=false;
+  renderBoxes();
+}
+buildBoxes();
+</script>
+</body>
+</html>
